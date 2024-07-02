@@ -28,7 +28,7 @@ document.getElementById('input').addEventListener('change', (e) => {
           screenCoords[i] = new Vec3(
             ((v.x + 1) * width) / 2,
             ((v.y + 1) * height) / 2,
-            0
+            v.z
           );
           worldCoords[i] = v;
         }
@@ -39,12 +39,7 @@ document.getElementById('input').addEventListener('change', (e) => {
         const intensity = N.dot(lightDir);
         if (intensity > 0) {
           const color = Math.round(intensity * 255);
-          canvas.triangle(screenCoords[0], screenCoords[1], screenCoords[2], [
-            color,
-            color,
-            color,
-            255,
-          ]);
+          canvas.triangle(screenCoords, [color, color, color, 255]);
         }
       }
       canvas.update();

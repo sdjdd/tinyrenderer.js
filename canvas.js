@@ -8,6 +8,9 @@ export class Canvas {
     this.el = el;
     this.ctx = el.getContext('2d');
     this.buffer = this.ctx.createImageData(el.width, el.height);
+    this.zBuffer = new Array(el.width * el.height).fill(
+      Number.MIN_SAFE_INTEGER
+    );
   }
 
   /**
@@ -67,13 +70,11 @@ export class Canvas {
   }
 
   /**
-   * @param {Vec3} t0
-   * @param {Vec3} t1
-   * @param {Vec3} t2
+   * @param {[Vec3, Vec3, Vec3]} points
    * @param {[number, number, number, number]} color
    */
-  triangle(t0, t1, t2, color) {
-    const points = [t0, t1, t2];
+  triangle(points, color) {
+    points = points.map((p) => p.floor());
     const bboxmin = [this.el.width - 1, this.el.height - 1];
     const bboxmax = [0, 0];
     const clamp = [this.el.width - 1, this.el.height - 1];
@@ -91,7 +92,15 @@ export class Canvas {
         if ([bcScreen.x, bcScreen.y, bcScreen.z].some((v) => v < 0 || v > 1)) {
           continue;
         }
-        this.putPixel(P.x, P.y, color);
+        P.z = 0;
+        P.z += bcScreen.x * points[0].z;
+        P.z += bcScreen.y * points[1].z;
+        P.z += bcScreen.z * points[2].z;
+        const pixelIdx = P.x + P.y * this.el.width;
+        if (this.zBuffer[pixelIdx] < P.z) {
+          this.zBuffer[pixelIdx] = P.z;
+          this.putPixel(P.x, P.y, color);
+        }
       }
     }
   }

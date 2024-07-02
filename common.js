@@ -57,4 +57,8 @@ export class Vec3 {
   normalize() {
     return this.mul(1 / this.length);
   }
+
+  floor() {
+    return new Vec3(Math.floor(this.x), Math.floor(this.y), Math.floor(this.z));
+  }
 }
