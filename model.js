@@ -1,10 +1,12 @@
+import { Vec3 } from './common.js';
+
 export class Model {
   /**
    * @param {string} data
    */
   constructor(data) {
     /**
-     * @type {[number, number, number][]}
+     * @type {Vec3[]}
      */
     this.verts = [];
 
@@ -18,11 +20,9 @@ export class Model {
       const items = line.split(' ');
       switch (items[0]) {
         case 'v':
-          this.verts.push([
-            Number(items[1]),
-            Number(items[2]),
-            Number(items[3]),
-          ]);
+          this.verts.push(
+            new Vec3(Number(items[1]), Number(items[2]), Number(items[3]))
+          );
           break;
         case 'f':
           this.faces.push([
