@@ -1,5 +1,27 @@
 import { Vec3 } from './common.js';
 
+export class Texture {
+  /**
+   * @param {ImageData} imageData
+   * @param {number} u0
+   * @param {number} v0
+   * @param {number} u1
+   * @param {number} v1
+   * @param {number} u2
+   * @param {number} v2
+   */
+  constructor(imageData, u0, v0, u1, v1, u2, v2, alpha = 255) {
+    this.imageData = imageData;
+    this.u0 = u0;
+    this.v0 = v0;
+    this.u1 = u1;
+    this.v1 = v1;
+    this.u2 = u2;
+    this.v2 = v2;
+    this.alpha = alpha;
+  }
+}
+
 export class Canvas {
   /**
    * @param {HTMLCanvasElement} el
@@ -11,6 +33,12 @@ export class Canvas {
     this.zBuffer = new Array(el.width * el.height).fill(
       Number.MIN_SAFE_INTEGER
     );
+  }
+
+  clear() {
+    this.ctx.clearRect(0, 0, this.el.width, this.el.height);
+    this.buffer = this.ctx.getImageData(0, 0, this.el.width, this.el.height);
+    this.zBuffer.fill(Number.MIN_SAFE_INTEGER);
   }
 
   /**
@@ -71,7 +99,7 @@ export class Canvas {
 
   /**
    * @param {[Vec3, Vec3, Vec3]} points
-   * @param {[number, number, number, number]} color
+   * @param {[number, number, number, number] | Texture} color
    */
   triangle(points, color) {
     points = points.map((p) => p.floor());
@@ -99,7 +127,30 @@ export class Canvas {
         const pixelIdx = P.x + P.y * this.el.width;
         if (this.zBuffer[pixelIdx] < P.z) {
           this.zBuffer[pixelIdx] = P.z;
-          this.putPixel(P.x, P.y, color);
+          if (color instanceof Texture) {
+            let u =
+              color.u0 * bcScreen.x +
+              color.u1 * bcScreen.y +
+              color.u2 * bcScreen.z;
+            let v =
+              color.v0 * bcScreen.x +
+              color.v1 * bcScreen.y +
+              color.v2 * bcScreen.z;
+            u = Math.trunc(u * color.imageData.width);
+            v = Math.trunc(v * color.imageData.height);
+            v = color.imageData.height - v;
+            const offset = 4 * (u + v * color.imageData.width);
+            if (offset >= 0 && offset + 3 < color.imageData.data.length) {
+              this.putPixel(P.x, P.y, [
+                color.imageData.data[offset + 0],
+                color.imageData.data[offset + 1],
+                color.imageData.data[offset + 2],
+                color.alpha,
+              ]);
+            }
+          } else {
+            this.putPixel(P.x, P.y, color);
+          }
         }
       }
     }
