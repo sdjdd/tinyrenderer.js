@@ -1,4 +1,77 @@
-export class Vec3 {
+export class Matrix {
+  /**
+   * @param {number} rows
+   * @param {number} cols
+   */
+  constructor(rows, cols) {
+    this.rows = rows;
+    this.cols = cols;
+    this.elements = new Array(rows * cols).fill(0);
+  }
+
+  static identity(n) {
+    const mat = new Matrix(n, n);
+    mat.set(0, 0, 1);
+    mat.set(1, 1, 1);
+    mat.set(2, 2, 1);
+    mat.set(3, 3, 1);
+    return mat;
+  }
+
+  /**
+   * @param {number} row
+   * @param {number} col
+   * @returns {number}
+   */
+  get(row, col) {
+    return this.elements[row * this.cols + col];
+  }
+
+  set(row, col, val) {
+    this.elements[row * this.cols + col] = val;
+  }
+
+  /**
+   * @param {number} row
+   */
+  row(row) {
+    return this.elements.slice(row * this.cols, row * this.cols + this.cols);
+  }
+
+  col(col) {
+    const arr = new Array(this.rows);
+    for (let row = 0; row < this.rows; row++) {
+      arr[row] = this.get(row, col);
+    }
+    return arr;
+  }
+
+  /**
+   * @param {Matrix} m
+   */
+  mul(m) {
+    if (m.rows !== this.cols) {
+      throw new TypeError(
+        `cannot mutiply matrix(${this.rows},${this.cols}) with matrix(${m.rows},${m.cols})`
+      );
+    }
+    const target = new Matrix(this.rows, m.cols);
+    for (let row = 0; row < target.rows; row++) {
+      for (let col = 0; col < target.cols; col++) {
+        const rNums = this.row(row);
+        const cNums = m.col(col);
+        let sum = 0;
+        for (let i = 0; i < rNums.length; i++) {
+          sum += rNums[i] * cNums[i];
+        }
+        target.set(row, col, sum);
+      }
+    }
+    return target;
+  }
+}
+
+export class Vec3 extends Matrix {
   /**
    *
    * @param {number} x
@@ -6,9 +79,41 @@ export class Vec3 {
    * @param {number} z
    */
   constructor(x, y, z) {
-    this.x = x;
-    this.y = y;
-    this.z = z;
+    super(3, 1);
+    this.elements[0] = x;
+    this.elements[1] = y;
+    this.elements[2] = z;
+  }
+
+  get x() {
+    return this.get(0);
+  }
+
+  set x(v) {
+    this.elements[0] = v;
+  }
+
+  get y() {
+    return this.get(1);
+  }
+
+  set y(v) {
+    this.elements[1] = v;
+  }
+
+  get z() {
+    return this.get(2);
+  }
+
+  set z(v) {
+    this.elements[2] = v;
+  }
+
+  /**
+   * @param {number} i
+   */
+  get(i) {
+    return super.get(i, 0);
   }
 
   /**

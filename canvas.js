@@ -37,7 +37,7 @@ export class Canvas {
 
   clear() {
     this.ctx.clearRect(0, 0, this.el.width, this.el.height);
-    this.buffer = this.ctx.getImageData(0, 0, this.el.width, this.el.height);
+    this.buffer = this.ctx.createImageData(this.el.width, this.el.height);
     this.zBuffer.fill(Number.MIN_SAFE_INTEGER);
   }
 
