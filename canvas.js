@@ -1,6 +1,25 @@
 import { Vec3 } from './common.js';
 
-export class Texture {
+export class Color {
+  /**
+   * @param {number} r
+   * @param {number} g
+   * @param {number} b
+   * @param {number} a
+   */
+  constructor(r, g, b, a) {
+    this.r = r;
+    this.g = g;
+    this.b = b;
+    this.a = a;
+  }
+
+  getColor() {
+    return [this.r, this.g, this.b, this.a];
+  }
+}
+
+export class TextureColor {
   /**
    * @param {ImageData} imageData
    * @param {number} u0
@@ -19,6 +38,63 @@ export class Texture {
     this.u2 = u2;
     this.v2 = v2;
     this.alpha = alpha;
+  }
+
+  /**
+   * @param {Vec3} bc
+   */
+  getColor(bc) {
+    let u = this.u0 * bc.x + this.u1 * bc.y + this.u2 * bc.z;
+    let v = this.v0 * bc.x + this.v1 * bc.y + this.v2 * bc.z;
+    u = Math.trunc(u * this.imageData.width);
+    v = Math.trunc(v * this.imageData.height);
+    v = this.imageData.height - v;
+    const offset = 4 * (u + v * this.imageData.width);
+    if (offset < 0 || offset >= this.imageData.data.length - 3) {
+      return [0, 0, 0, 0];
+    }
+    return [
+      this.imageData.data[offset + 0],
+      this.imageData.data[offset + 1],
+      this.imageData.data[offset + 2],
+      this.alpha,
+    ];
+  }
+}
+
+export class TextureColorWithNormal extends TextureColor {
+  /**
+   * @param {ImageData} imageData
+   * @param {number} u0
+   * @param {number} v0
+   * @param {number} u1
+   * @param {number} v1
+   * @param {number} u2
+   * @param {number} v2
+   * @param {[Vec3, Vec3, Vec3]} norms
+   * @param {Vec3} light
+   */
+  constructor(imageData, u0, v0, u1, v1, u2, v2, norms, light) {
+    super(imageData, u0, v0, u1, v1, u2, v2);
+    this.norms = norms;
+    this.light = light;
+  }
+
+  /**
+   * @param {Vec3} bc
+   */
+  getColor(bc) {
+    const color = super.getColor(bc);
+    if (color[3] === 0) {
+      return color;
+    }
+    const N = new Vec3(
+      this.norms[0].x * bc.x + this.norms[1].x * bc.y + this.norms[2].x * bc.z,
+      this.norms[0].y * bc.x + this.norms[1].y * bc.y + this.norms[2].y * bc.z,
+      this.norms[0].z * bc.x + this.norms[1].z * bc.y + this.norms[2].z * bc.z
+    ).normalize();
+    color[3] = Math.max(Math.trunc(color[3] * N.dot(this.light)), 0);
+    return color;
   }
 }
 
@@ -99,9 +175,7 @@ export class Canvas {
 
   /**
    * @param {[Vec3, Vec3, Vec3]} points
-   * @param {[number, number, number, number] | Texture} color
-   * @param {[Vec3, Vec3, Vec3]} [norms]
-   * @param {Vec3} [light]
+   * @param {Color | TextureColor | TextureColorWithNormal} color
    */
   triangle(points, color, norms, light) {
     points = points.map((p) => p.floor());
@@ -129,47 +203,7 @@ export class Canvas {
         const pixelIdx = P.x + P.y * this.el.width;
         if (this.zBuffer[pixelIdx] < P.z) {
           this.zBuffer[pixelIdx] = P.z;
-          if (color instanceof Texture) {
-            let u =
-              color.u0 * bcScreen.x +
-              color.u1 * bcScreen.y +
-              color.u2 * bcScreen.z;
-            let v =
-              color.v0 * bcScreen.x +
-              color.v1 * bcScreen.y +
-              color.v2 * bcScreen.z;
-            u = Math.trunc(u * color.imageData.width);
-            v = Math.trunc(v * color.imageData.height);
-            v = color.imageData.height - v;
-            const offset = 4 * (u + v * color.imageData.width);
-            if (offset >= 0 && offset + 3 < color.imageData.data.length) {
-              let alpha = color.alpha;
-              if (norms && light) {
-                const N = new Vec3(
-                  norms[0].x * bcScreen.x +
-                    norms[1].x * bcScreen.y +
-                    norms[2].x * bcScreen.z,
-                  norms[0].y * bcScreen.x +
-                    norms[1].y * bcScreen.y +
-                    norms[2].y * bcScreen.z,
-                  norms[0].z * bcScreen.x +
-                    norms[1].z * bcScreen.y +
-                    norms[2].z * bcScreen.z
-                ).normalize();
-                alpha = Math.trunc(N.dot(light) * 255);
-              }
-              if (alpha > 0) {
-                this.putPixel(P.x, P.y, [
-                  color.imageData.data[offset + 0],
-                  color.imageData.data[offset + 1],
-                  color.imageData.data[offset + 2],
-                  alpha,
-                ]);
-              }
-            }
-          } else {
-            this.putPixel(P.x, P.y, color);
-          }
+          this.putPixel(P.x, P.y, color.getColor(bcScreen));
         }
       }
     }

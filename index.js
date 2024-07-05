@@ -1,5 +1,10 @@
 import TgaLoader from './lib/tga.js';
-import { Canvas, Texture } from './canvas.js';
+import {
+  Canvas,
+  Color,
+  TextureColor,
+  TextureColorWithNormal,
+} from './canvas.js';
 import { Matrix, Vec3 } from './common.js';
 import { Model } from './model.js';
 
@@ -58,7 +63,7 @@ async function lesson2() {
     const intensity = N.dot(lightDir);
     if (intensity > 0) {
       const color = Math.round(intensity * 255);
-      canvas.triangle(screenCoords, [color, color, color, 255]);
+      canvas.triangle(screenCoords, new Color(color, color, color, 255));
     }
   }
   canvas.update();
@@ -106,7 +111,7 @@ async function lesson2Assignment() {
       const [u2, v2] = model.texts[face.vt2];
       canvas.triangle(
         screenCoords,
-        new Texture(
+        new TextureColor(
           diffuseImage,
           u0,
           v0,
@@ -198,7 +203,7 @@ async function lesson3() {
       const [u2, v2] = model.texts[face.vt2];
       canvas.triangle(
         screenCoords,
-        new Texture(
+        new TextureColor(
           diffuseImage,
           u0,
           v0,
@@ -305,9 +310,17 @@ async function lesson4() {
     const [u2, v2] = model.texts[face.vt2];
     canvas.triangle(
       screenCoords,
-      new Texture(diffuseImage, u0, v0, u1, v1, u2, v2, 255),
-      [model.norms[face.vn0], model.norms[face.vn1], model.norms[face.vn2]],
-      lightDir
+      new TextureColorWithNormal(
+        diffuseImage,
+        u0,
+        v0,
+        u1,
+        v1,
+        u2,
+        v2,
+        [model.norms[face.vn0], model.norms[face.vn1], model.norms[face.vn2]],
+        lightDir
+      )
     );
   }
   canvas.update();
