@@ -214,11 +214,110 @@ async function lesson3() {
   canvas.update();
 }
 
-[lesson1, lesson2, lesson2Assignment, lesson3].forEach((fn) => {
+async function lesson4() {
+  const objFile = await fetch('./african_head.obj');
+  const model = new Model(await objFile.text());
+
+  const diffuseFile = await fetch('./african_head_diffuse.tga');
+  const diffuse = new TgaLoader();
+  diffuse.load(new Uint8Array(await diffuseFile.arrayBuffer()));
+  const diffuseImage = diffuse.getImageData();
+
+  const lightDir = new Vec3(1, -1, 1).normalize();
+  const eye = new Vec3(1, 1, 3);
+  const center = new Vec3(0, 0, 0);
+
+  const depth = 255;
+
+  const m2v = (m) => {
+    const w = m.get(3, 0);
+    return new Vec3(m.get(0, 0) / w, m.get(1, 0) / w, m.get(2, 0) / w);
+  };
+
+  const v2m = (v) => {
+    const m = new Matrix(4, 1);
+    m.set(0, 0, v.x);
+    m.set(1, 0, v.y);
+    m.set(2, 0, v.z);
+    m.set(3, 0, 1);
+    return m;
+  };
+
+  const viewport = (x, y, w, h) => {
+    const m = Matrix.identity(4);
+    m.set(0, 3, x + w / 2);
+    m.set(1, 3, y + h / 2);
+    m.set(2, 3, depth / 2);
+
+    m.set(0, 0, w / 2);
+    m.set(1, 1, h / 2);
+    m.set(2, 2, depth / 2);
+    return m;
+  };
+
+  /**
+   * @param {Vec3} eye
+   * @param {Vec3} center
+   * @param {Vec3} up
+   */
+  const lookat = (eye, center, up) => {
+    const z = eye.sub(center).normalize();
+    const x = up.cross(z).normalize();
+    const y = z.cross(x).normalize();
+    const m = Matrix.identity(4);
+    for (let i = 0; i < 3; i++) {
+      m.set(0, i, x.get(i));
+      m.set(1, i, y.get(i));
+      m.set(2, i, z.get(i));
+      m.set(i, 3, -center.get(i));
+    }
+    return m;
+  };
+
+  const projection = Matrix.identity(4);
+  projection.set(3, 2, -1 / eye.sub(center).length);
+  const view = viewport(
+    width / 8,
+    height / 8,
+    (width * 3) / 4,
+    (height * 3) / 4
+  );
+  const m_model = lookat(eye, center, new Vec3(0, 1, 0));
+
+  for (const face of model.faces) {
+    const worldCoords = [
+      new Vec3(0, 0, 0),
+      new Vec3(0, 0, 0),
+      new Vec3(0, 0, 0),
+    ];
+    const screenCoords = [
+      new Vec3(0, 0, 0),
+      new Vec3(0, 0, 0),
+      new Vec3(0, 0, 0),
+    ];
+    for (let i = 0; i < 3; i++) {
+      const v = model.verts[face[`v${i}`]];
+      screenCoords[i] = m2v(view.mul(projection).mul(m_model).mul(v2m(v)));
+      worldCoords[i] = v;
+    }
+    const [u0, v0] = model.texts[face.vt0];
+    const [u1, v1] = model.texts[face.vt1];
+    const [u2, v2] = model.texts[face.vt2];
+    canvas.triangle(
+      screenCoords,
+      new Texture(diffuseImage, u0, v0, u1, v1, u2, v2, 255),
+      [model.norms[face.vn0], model.norms[face.vn1], model.norms[face.vn2]],
+      lightDir
+    );
+  }
+  canvas.update();
+}
+
+[lesson1, lesson2, lesson2Assignment, lesson3, lesson4].forEach((fn) => {
   document.getElementById(fn.name).addEventListener('click', () => {
     canvas.clear();
     fn();
   });
 });
 
-lesson3();
+lesson1();

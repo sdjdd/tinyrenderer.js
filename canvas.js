@@ -100,8 +100,10 @@ export class Canvas {
   /**
    * @param {[Vec3, Vec3, Vec3]} points
    * @param {[number, number, number, number] | Texture} color
+   * @param {[Vec3, Vec3, Vec3]} [norms]
+   * @param {Vec3} [light]
    */
-  triangle(points, color) {
+  triangle(points, color, norms, light) {
     points = points.map((p) => p.floor());
     const bboxmin = [this.el.width - 1, this.el.height - 1];
     const bboxmax = [0, 0];
@@ -141,12 +143,29 @@ export class Canvas {
             v = color.imageData.height - v;
             const offset = 4 * (u + v * color.imageData.width);
             if (offset >= 0 && offset + 3 < color.imageData.data.length) {
-              this.putPixel(P.x, P.y, [
-                color.imageData.data[offset + 0],
-                color.imageData.data[offset + 1],
-                color.imageData.data[offset + 2],
-                color.alpha,
-              ]);
+              let alpha = color.alpha;
+              if (norms && light) {
+                const N = new Vec3(
+                  norms[0].x * bcScreen.x +
+                    norms[1].x * bcScreen.y +
+                    norms[2].x * bcScreen.z,
+                  norms[0].y * bcScreen.x +
+                    norms[1].y * bcScreen.y +
+                    norms[2].y * bcScreen.z,
+                  norms[0].z * bcScreen.x +
+                    norms[1].z * bcScreen.y +
+                    norms[2].z * bcScreen.z
+                ).normalize();
+                alpha = Math.trunc(N.dot(light) * 255);
+              }
+              if (alpha > 0) {
+                this.putPixel(P.x, P.y, [
+                  color.imageData.data[offset + 0],
+                  color.imageData.data[offset + 1],
+                  color.imageData.data[offset + 2],
+                  alpha,
+                ]);
+              }
             }
           } else {
             this.putPixel(P.x, P.y, color);
